@@ -26,7 +26,7 @@ pilihan_model = st.sidebar.selectbox(
     ["ResNet50", "Xception", "EfficientNetB0"]
 )
 
-# 4. --- GOOGLE DRIVE FILE ID MANAGEMENT ---
+# 4. --- GOOGLE DRIVE FILE ID MANAGEMENT (SUDAH TERISI ID ANDA) ---
 MODEL_DRIVE_IDS = {
     "ResNet50": "1p9zaiXEADcb6_KL_bvW7sUJf2kIysfGk",
     "Xception": "1I3pRM8KIU9PvpRPpRoKbG13CCx2Ygm_8",
@@ -48,23 +48,22 @@ def load_selected_model(model_name):
     path_lengkap = os.path.join("models", file_name)
     
     if not os.path.exists(path_lengkap):
-        if "ID_FILE_" in drive_id or drive_id == "":
-            return None
-            
         with st.spinner(f"Sedang mengunduh arsitektur {model_name} dari Google Drive (hanya dilakukan sekali)..."):
             try:
+                # Menggunakan endpoint download Google Drive publik
                 url_download = f"https://docs.google.com/uc?export=download&id={drive_id}"
                 urllib.request.urlretrieve(url_download, path_lengkap)
             except Exception as e:
                 st.error(f"Gagal mengunduh model {model_name}: {e}")
                 return None
                 
-    return tf.keras.models.load_model(path_lengkap)
+    try:
+        return tf.keras.models.load_model(path_lengkap)
+    except Exception as e:
+        st.error(f"Gagal memuat file h5 {model_name}: {e}")
+        return None
 
 model = load_selected_model(pilihan_model)
-
-if model is None:
-    st.sidebar.warning(f"⚠️ Mode Simulasi Aktif untuk {pilihan_model}. Hubungkan ID Drive Anda jika ingin hasil riil.")
 
 # 5. --- TATA LETAK GRID UTAMA ---
 kolom_kiri, kolom_kanan = st.columns([1.2, 1], gap="large")
@@ -86,23 +85,22 @@ with kolom_kanan:
         st.image(image, caption="Citra Masukan Uji", use_container_width=True)
         
         if st.button("Mulai Analisis Model", type="primary", use_container_width=True):
-            with st.spinner(f'Model {pilihan_model} sedang menganalisis...'):
-                img_resized = image.resize((224, 224))
-                img_array = np.array(img_resized) / 255.0
-                img_array = np.expand_dims(img_array, axis=0)
-                
-                if model is not None:
+            if model is not None:
+                with st.spinner(f'Model {pilihan_model} sedang menganalisis citra...'):
+                    # Preprocessing sesuai spesifikasi input gambar standar CNN
+                    img_resized = image.resize((224, 224))
+                    img_array = np.array(img_resized) / 255.0
+                    img_array = np.expand_dims(img_array, axis=0)
+                    
                     prediction = model.predict(img_array)
-                    prob_fake = float(prediction[0][0])
+                    prob_fake = float(prediction[0][0])  # Asumsi output sigmoid: dekat ke 1 = Fake
                     prob_real = 1.0 - prob_fake
-                else:
-                    import random
-                    prob_fake = random.uniform(0.65, 0.99)
-                    prob_real = 1.0 - prob_fake
-                
-                label_final = "Fake (AI)" if prob_fake > 0.5 else "Real (Asli)"
-                prob_final = prob_fake if prob_fake > 0.5 else prob_real
-                sudah_proses = True
+                    
+                    label_final = "Fake (AI)" if prob_fake > 0.5 else "Real (Asli)"
+                    prob_final = prob_fake if prob_fake > 0.5 else prob_real
+                    sudah_proses = True
+            else:
+                st.error("Model gagal dimuat. Pastikan file h5 di Google Drive Anda sudah diatur agar 'Siapa saja yang memiliki link dapat melihat'.")
 
 # ================= KOLOM KIRI (DASHBOARD METRIK) =================
 with kolom_kiri:
@@ -120,7 +118,6 @@ with kolom_kiri:
     # Sub-Grid Bawah (Tempat Menampilkan Hasil Akhir)
     with st.container(border=True):
         if sudah_proses:
-            # Menggunakan st.metric murni tanpa bumbu HTML kustom agar 100% stabil
             st.metric(
                 label=f"Hasil Prediksi Akhir ({pilihan_model})", 
                 value=label_final, 
