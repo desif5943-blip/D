@@ -16,7 +16,7 @@ st.set_page_config(
 # 2. --- HEADER UTAMA ---
 st.title("Detecting Fake Images with a Deep-Learning Tool")
 st.caption("Aplikasi Komparasi Arsitektur CNN (ResNet50, Xception, EfficientNetB0) | Desi Fatmala Susilawati")
-st.markdown("---")
+st.divider()
 
 # 3. --- SIDEBAR UNTUK PEMILIHAN MODEL ---
 st.sidebar.title("🤖 Konfigurasi Model CNN")
@@ -77,21 +77,18 @@ with kolom_kiri:
     with sub_kol_1:
         st.markdown("### Upload an image")
         uploaded_file = st.file_uploader("Pilih citra (JPG, PNG)...", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(" ")
         tombol_proses = st.button("Mulai Analisis Model", type="primary", use_container_width=True)
         
     with sub_kol_2:
-        # Menggunakan st.container + border agar menyerupai box metrik di gambar acuan Anda
         with st.container(border=True):
-            st.write("Real Images Predicted as Fake")
-            st.subheader("11%")
+            st.metric(label="Real Images Predicted as Fake", value="11%")
 
     # Sub-Grid Bawah
     sub_kol_3, sub_kol_4 = st.columns(2)
     with sub_kol_3:
         with st.container(border=True):
-            st.write("Fake Images Predicted as Real")
-            st.subheader("94%")
+            st.metric(label="Fake Images Predicted as Real", value="94%")
         
     with sub_kol_4:
         # Kotak besar utama penampung status (Menggunakan st.container native)
@@ -106,10 +103,10 @@ with kolom_kanan:
         image = Image.open(uploaded_file)
         st.image(image, caption="Citra Masukan Uji", use_container_width=True)
         
-        # Keadaan Default Kotak Status sebelum tombol ditekan
+        # Tampilan Awal sebelum tombol ditekan
         with box_hasil:
-            st.markdown("<h2 style='text-align: center; color: gray;'>Ready</h2>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center;'>Silakan tekan tombol analisis</p>", unsafe_allow_html=True)
+            st.subheader("Status: Ready")
+            st.text("Silakan tekan tombol analisis")
         
         if tombol_proses:
             with st.spinner(f'Model {pilihan_model} sedang berjalan...'):
@@ -128,14 +125,13 @@ with kolom_kanan:
                     prob_fake = random.uniform(0.65, 0.99)
                     prob_real = 1.0 - prob_fake
                 
-                label_final = "Fake" if prob_fake > 0.5 else "Real"
+                label_final = "Fake (AI)" if prob_fake > 0.5 else "Real (Asli)"
                 prob_final = prob_fake if prob_fake > 0.5 else prob_real
                 
-                # Menimpa tampilan Kotak Hasil secara aman lewat container native
+                # Menimpa isi kotak hasil menggunakan fungsi metric bawaan (100% Aman)
                 box_hasil.empty()
                 with box_hasil:
-                    st.markdown(f"<h1 style='text-align: center; color: #ff4b4b if label_final=='Fake' else #2ecc71;'>{label_final}</h1>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='text-align: center; font-weight: bold;'>Probability: {prob_final:.2f}</p>", unsafe_allow_html=True)
+                    st.metric(label="Hasil Prediksi Akhir", value=label_final, delta=f"Akurasi: {prob_final*100:.1f}%")
                 
                 # Visualisasi Grafik Batang
                 st.markdown("#### Distribusi Nilai Output Model:")
@@ -144,7 +140,7 @@ with kolom_kanan:
                 performance = [prob_real * 100, prob_fake * 100]
                 ax.barh(y_pos, performance, align='center', color=['#2ecc71', '#e74c3c'])
                 ax.set_yticks(y_pos)
-                ax.set_yticklabels(['Real (Asli)', 'Fake (AI)'])
+                ax.set_yticklabels(['Real', 'Fake'])
                 ax.set_xlabel('Persentase Keyakinan (%)')
                 ax.set_xlim(0, 100)
                 st.pyplot(fig)
@@ -153,6 +149,6 @@ with kolom_kanan:
                 st.success(f"Selesai! Berhasil dianalisis menggunakan arsitektur {pilihan_model}.")
     else:
         with box_hasil:
-            st.markdown("<h2 style='text-align: center; color: gray;'>Empty</h2>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center;'>Menunggu berkas gambar</p>", unsafe_allow_html=True)
+            st.subheader("Status: Empty")
+            st.text("Menunggu berkas gambar diunggah")
         st.info("Menunggu berkas gambar diunggah di kolom kiri.")
