@@ -13,32 +13,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Kustomisasi CSS Tampilan Grid Kotak Hasil (Agar mirip dengan Gambar Referensi Kedua)
-st.markdown("""
-    <style>
-    .metric-box-dark {
-        background-color: #0B2240;
-        color: white;
-        padding: 30px;
-        border-radius: 15px;
-        text-align: center;
-        margin-bottom: 15px;
-    }
-    .metric-box-light {
-        background-color: #F8F9FA;
-        color: #333;
-        padding: 25px;
-        border-radius: 15px;
-        text-align: center;
-        border: 1px solid #E0E0E0;
-        margin-bottom: 15px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # 2. --- HEADER UTAMA ---
-st.markdown("<h1>Detecting Fake Images with a Deep-Learning Tool</h1>", unsafe_allow_html=True)
-st.markdown("<p style='color: gray; margin-top: -10px;'>Aplikasi Komparasi Arsitektur CNN (ResNet50, Xception, EfficientNetB0) | Desi Fatmala Susilawati</p>", unsafe_allow_html=True)
+st.title("Detecting Fake Images with a Deep-Learning Tool")
+st.caption("Aplikasi Komparasi Arsitektur CNN (ResNet50, Xception, EfficientNetB0) | Desi Fatmala Susilawati")
 st.markdown("---")
 
 # 3. --- SIDEBAR UNTUK PEMILIHAN MODEL ---
@@ -49,33 +26,29 @@ pilihan_model = st.sidebar.selectbox(
     ["ResNet50", "Xception", "EfficientNetB0"]
 )
 
-# 4. --- TEMPAT MENARUH LINK ID GOOGLE DRIVE MODEL ANDA ---
-# Sesuai langkah sebelumnya, silakan ganti kode teks ID di bawah ini dengan ID dari link share Google Drive Anda
+# 4. --- GOOGLE DRIVE FILE ID MANAGEMENT ---
 MODEL_DRIVE_IDS = {
     "ResNet50": "1p9zaiXEADcb6_KL_bvW7sUJf2kIysfGk",
-    "Xception": "ID_FILE_XCEPTION_ANDA",
-    "EfficientNetB0": "ID_FILE_EFFICIENTNET_ANDA"
-}
-
-NAMA_FILE_LOCAL = {
-    "ResNet50": "resnet50_terbaik.h5",
     "Xception": "1I3pRM8KIU9PvpRPpRoKbG13CCx2Ygm_8",
     "EfficientNetB0": "1ORxkrpn4aNZh1ZIYyF0q47lJuA2XCkxt"
 }
 
-# Fungsi otomatis download dan load model h5 ke Cloud Server
+NAMA_FILE_LOCAL = {
+    "ResNet50": "resnet50_terbaik.h5",
+    "Xception": "xception_terbaik.h5",
+    "EfficientNetB0": "efficientnetb0_terbaik.h5"
+}
+
 @st.cache_resource
 def load_selected_model(model_name):
     file_name = NAMA_FILE_LOCAL[model_name]
     drive_id = MODEL_DRIVE_IDS[model_name]
     
-    # Folder internal server cloud untuk menyimpan model sementara
     os.makedirs("models", exist_ok=True)
     path_lengkap = os.path.join("models", file_name)
     
     if not os.path.exists(path_lengkap):
-        # Jika ID belum diganti oleh pengguna, bypass menggunakan mode simulasi
-        if "ID_FILE_" in drive_id:
+        if "ID_FILE_" in drive_id or drive_id == "":
             return None
             
         with st.spinner(f"Sedang mengunduh arsitektur {model_name} dari Google Drive (hanya dilakukan sekali)..."):
@@ -91,17 +64,16 @@ def load_selected_model(model_name):
 model = load_selected_model(pilihan_model)
 
 if model is None:
-    st.sidebar.warning(f"⚠️ Mode Simulasi Aktif karena ID Google Drive untuk {pilihan_model} belum diisi dengan benar.")
+    st.sidebar.warning(f"⚠️ Mode Simulasi Aktif untuk {pilihan_model}. Hubungkan ID Drive Anda jika ingin hasil riil.")
 
-# 5. --- TATA LETAK GRID UTAMA (MEMBAGI MENJADI 2 KOLOM) ---
+# 5. --- TATA LETAK GRID UTAMA (MENGGUNAKAN ELEMEN NATIVE STREAMLIT) ---
 kolom_kiri, kolom_kanan = st.columns([1.2, 1], gap="large")
 
-# ================= KOLOM KIRI: INPUT & KARTU METRIK HASIL =================
+# ================= KOLOM KIRI: INPUT & METRIK HASIL =================
 with kolom_kiri:
     
-    # Sub-Grid untuk pembagian kotak upload dan metrik evaluasi tambahan
+    # Sub-Grid Atas
     sub_kol_1, sub_kol_2 = st.columns(2)
-    
     with sub_kol_1:
         st.markdown("### Upload an image")
         uploaded_file = st.file_uploader("Pilih citra (JPG, PNG)...", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
@@ -109,78 +81,63 @@ with kolom_kiri:
         tombol_proses = st.button("Mulai Analisis Model", type="primary", use_container_width=True)
         
     with sub_kol_2:
-        # Metrik Atas Kiri (Konstanta sesuai tampilan gambar acuan Anda)
-        st.markdown("""
-            <div class='metric-box-light'>
-                <p style='margin:0; font-size:14px; color:gray;'>Real Images Predicted as Fake</p>
-                <h2 style='margin:5px 0 0 0; color:#333;'>11%</h2>
-            </div>
-        """, unsafe_allow_html=True)
+        # Menggunakan st.container + border agar menyerupai box metrik di gambar acuan Anda
+        with st.container(border=True):
+            st.write("Real Images Predicted as Fake")
+            st.subheader("11%")
 
-    # Baris baru di bawahnya
+    # Sub-Grid Bawah
     sub_kol_3, sub_kol_4 = st.columns(2)
-    
     with sub_kol_3:
-        # Metrik Bawah Kiri (Konstanta sesuai tampilan gambar acuan Anda)
-        st.markdown("""
-            <div class='metric-box-light'>
-                <p style='margin:0; font-size:14px; color:gray;'>Fake Images Predicted as Real</p>
-                <h2 style='margin:5px 0 0 0; color:#333;'>94%</h2>
-            </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True):
+            st.write("Fake Images Predicted as Real")
+            st.subheader("94%")
         
     with sub_kol_4:
-        # KOTAK BESAR UTAMA (Menampilkan Prediksi Akhir secara Real-Time)
-        box_hasil = st.empty()
-        box_hasil.markdown("""
-            <div class='metric-box-dark'>
-                <h1 style='margin:0; font-size:32px;'>Ready</h1>
-                <p style='margin:5px 0 0 0; font-size:14px; color:#A0B2C6;'>Silakan unggah citra</p>
-            </div>
-        """, unsafe_allow_html=True)
+        # Kotak besar utama penampung status (Menggunakan st.container native)
+        box_hasil = st.container(border=True)
 
 
-# ================= KOLOM KANAN: PREVIEW & VISUALISASI GRAFIK BAR =================
+# ================= KOLOM KANAN: PREVIEW & VISUALISASI =================
 with kolom_kanan:
     st.markdown("### Preview & Analisis Fitur")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        # Tampilkan gambar masukan di sisi kanan atas
         st.image(image, caption="Citra Masukan Uji", use_container_width=True)
         
+        # Keadaan Default Kotak Status sebelum tombol ditekan
+        with box_hasil:
+            st.markdown("<h2 style='text-align: center; color: gray;'>Ready</h2>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center;'>Silakan tekan tombol analisis</p>", unsafe_allow_html=True)
+        
         if tombol_proses:
-            with st.spinner(f'Model {pilihan_model} sedang melakukan klasifikasi...'):
+            with st.spinner(f'Model {pilihan_model} sedang berjalan...'):
                 
-                # Preprocessing Gambar sesuai input default dimensi arsitektur CNN (224x224)
+                # Preprocessing
                 img_resized = image.resize((224, 224))
                 img_array = np.array(img_resized) / 255.0
                 img_array = np.expand_dims(img_array, axis=0)
                 
-                # Prediksi
                 if model is not None:
                     prediction = model.predict(img_array)
-                    prob_fake = float(prediction[0][0])  # Mengasumsikan nilai 1 dekat ke Fake (AI)
+                    prob_fake = float(prediction[0][0])
                     prob_real = 1.0 - prob_fake
                 else:
-                    # Angka pengisi simulasi grafik jika ID Drive belum dipasang
                     import random
                     prob_fake = random.uniform(0.65, 0.99)
                     prob_real = 1.0 - prob_fake
                 
-                # Mengubah Label Berdasarkan Probabilitas Tertinggi
                 label_final = "Fake" if prob_fake > 0.5 else "Real"
                 prob_final = prob_fake if prob_fake > 0.5 else prob_real
                 
-                # Mengganti Tampilan Kotak Besar Utama secara Interaktif
-                box_hasil.markdown(f"""
-                    <div class='metric-box-dark'>
-                        <h1 style='margin:0; font-size:40px; font-weight:bold;'>{label_final}</h1>
-                        <p style='margin:5px 0 0 0; font-size:16px; color:#A0B2C6;'>Probability: {prob_final:.2f}</p>
-                    </div>
-                """, unsafe_allow_html=True)
+                # Menimpa tampilan Kotak Hasil secara aman lewat container native
+                box_hasil.empty()
+                with box_hasil:
+                    st.markdown(f"<h1 style='text-align: center; color: #ff4b4b if label_final=='Fake' else #2ecc71;'>{label_final}</h1>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='text-align: center; font-weight: bold;'>Probability: {prob_final:.2f}</p>", unsafe_allow_html=True)
                 
-                # Membuat visualisasi grafik batang persentase di sisi kanan bawah
+                # Visualisasi Grafik Batang
                 st.markdown("#### Distribusi Nilai Output Model:")
                 fig, ax = plt.subplots(figsize=(5, 2))
                 y_pos = np.arange(2)
@@ -191,7 +148,11 @@ with kolom_kanan:
                 ax.set_xlabel('Persentase Keyakinan (%)')
                 ax.set_xlim(0, 100)
                 st.pyplot(fig)
+                plt.close(fig)
                 
-                st.success(f"Berhasil dianalisis menggunakan arsitektur **{pilihan_model}**!")
+                st.success(f"Selesai! Berhasil dianalisis menggunakan arsitektur {pilihan_model}.")
     else:
-        st.info("Menunggu berkas gambar diunggah di kolom kiri untuk menampilkan pratinjau analisis.")
+        with box_hasil:
+            st.markdown("<h2 style='text-align: center; color: gray;'>Empty</h2>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center;'>Menunggu berkas gambar</p>", unsafe_allow_html=True)
+        st.info("Menunggu berkas gambar diunggah di kolom kiri.")
