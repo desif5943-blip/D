@@ -28,15 +28,15 @@ pilihan_model = st.sidebar.selectbox(
 
 # 4. --- GOOGLE DRIVE FILE ID MANAGEMENT ---
 MODEL_DRIVE_IDS = {
-    "ResNet50": "ID_FILE_RESNET_ANDA",
-    "Xception": "ID_FILE_XCEPTION_ANDA",
-    "EfficientNetB0": "ID_FILE_EFFICIENTNET_ANDA"
-}
-
-NAMA_FILE_LOCAL = {
     "ResNet50": "1p9zaiXEADcb6_KL_bvW7sUJf2kIysfGk",
     "Xception": "1I3pRM8KIU9PvpRPpRoKbG13CCx2Ygm_8",
     "EfficientNetB0": "1ORxkrpn4aNZh1ZIYyF0q47lJuA2XCkxt"
+}
+
+NAMA_FILE_LOCAL = {
+    "ResNet50": "resnet50_terbaik.h5",
+    "Xception": "xception_terbaik.h5",
+    "EfficientNetB0": "efficientnetb0_terbaik.h5"
 }
 
 @st.cache_resource
@@ -66,10 +66,10 @@ model = load_selected_model(pilihan_model)
 if model is None:
     st.sidebar.warning(f"⚠️ Mode Simulasi Aktif untuk {pilihan_model}. Hubungkan ID Drive Anda jika ingin hasil riil.")
 
-# 5. --- TATA LETAK GRID UTAMA (MENGGUNAKAN ELEMEN NATIVE STREAMLIT) ---
+# 5. --- TATA LETAK GRID UTAMA ---
 kolom_kiri, kolom_kanan = st.columns([1.2, 1], gap="large")
 
-# Menginisialisasi variabel status agar tidak terjadi tabrakan penulisan elemen
+# Menginisialisasi variabel status agar tidak bertabrakan
 sudah_proses = False
 label_final = ""
 prob_final = 0.0
@@ -85,7 +85,6 @@ with kolom_kanan:
         image = Image.open(uploaded_file)
         st.image(image, caption="Citra Masukan Uji", use_container_width=True)
         
-        # Logika pemrosesan diletakkan sebelum penggambaran kotak metrik hasil
         if st.button("Mulai Analisis Model", type="primary", use_container_width=True):
             with st.spinner(f'Model {pilihan_model} sedang menganalisis...'):
                 img_resized = image.resize((224, 224))
@@ -105,11 +104,11 @@ with kolom_kanan:
                 prob_final = prob_fake if prob_fake > 0.5 else prob_real
                 sudah_proses = True
 
-# ================= KOLOM KIRI (TAMPILAN STATIS KARTU METRIK) =================
+# ================= KOLOM KIRI (DASHBOARD METRIK) =================
 with kolom_kiri:
     st.markdown("### Dashboard Evaluasi")
     
-    # Sub-Grid Atas
+    # Sub-Grid Atas (Nilai Konstanta Evaluasi)
     sub_kol_1, sub_kol_2 = st.columns(2)
     with sub_kol_1:
         with st.container(border=True):
@@ -121,9 +120,18 @@ with kolom_kiri:
     # Sub-Grid Bawah (Tempat Menampilkan Hasil Akhir)
     with st.container(border=True):
         if sudah_proses:
-            st.metric(label=f"Hasil Akhir ({pilihan_model})", value=label_final, delta=f"Keyakinan: {prob_final*100:.1f}%")
+            # Menggunakan st.metric murni tanpa bumbu HTML kustom agar 100% stabil
+            st.metric(
+                label=f"Hasil Prediksi Akhir ({pilihan_model})", 
+                value=label_final, 
+                delta=f"Tingkat Keyakinan: {prob_final*100:.1f}%"
+            )
         else:
-            st.metric(label="Hasil Akhir", value="Ready", delta="Menunggu input gambar dan klik tombol", delta_color="off")
+            st.metric(
+                label="Hasil Prediksi Akhir", 
+                value="Ready", 
+                delta="Silakan unggah gambar dan klik tombol analisis"
+            )
 
 # ================= VISUALISASI GRAFIK DI BAGIAN BAWAH KANAN =================
 if sudah_proses:
